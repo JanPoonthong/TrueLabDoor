@@ -4,12 +4,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.text.TextUtils;
-import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 
 import com.cardlan.twoshowinonescreen.CardLanSerialHelper;
-import com.cardlan.twoshowinonescreen.CardLanSpiHelper;
 import com.cardlan.twoshowinonescreen.CardLanStandardBus;
 import com.cardlan.utils.ByteUtil;
 import com.example.truelabdoor.data.TerminalConsumeDataForSystem;
@@ -19,12 +16,20 @@ import java.io.FileDescriptor;
 
 
 public class MainActivity extends AppCompatActivity {
-    String QRCodeTailSplit = "\r\n";
     CardLanStandardBus mCardLanDevCtrl = new CardLanStandardBus();
     private FileDescriptor QrCodeFlag = mCardLanDevCtrl.callSerialOpen("/dev/ttyAMA4", 115200, 0);
     private TextView mTv_qc_result;
     TerminalConsumeDataForSystem terminal;
-    
+
+
+    protected boolean validateQrCode(String qrcode){
+        return true;
+    }
+
+    protected void openDoor(){
+
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,6 +58,9 @@ public class MainActivity extends AppCompatActivity {
                     if (ByteUtil.notNull(qrCode)) {
 
                         mTv_qc_result.setText(": " + qrCode);
+                        if (validateQrCode(qrCode)) {
+                            openDoor();
+                        }
                         terminal.callProc();
                     }
 
