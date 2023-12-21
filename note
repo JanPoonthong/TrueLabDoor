@@ -1,3 +1,10 @@
 ERROR:
     Happen when running on machine without clicking anything
         EGLBoolean __egl_platform_create_surface_window(egl_surface*, mali_base_ctx_handle):933: =========> usage 0x900
+
+RELAY Control Signal
+    HIGH_OUTPUT_1
+    LOW_OUTPUT_1
+
+    HIGH_OUTPUT_2
+    LOW_OUTPUT_2

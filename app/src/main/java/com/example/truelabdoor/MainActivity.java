@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private FileDescriptor QrCodeFlag = mCardLanDevCtrl.callSerialOpen("/dev/ttyAMA4", 115200, 0);
     private TextView mTv_qc_result;
     TerminalConsumeDataForSystem terminal;
-    
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,13 +34,17 @@ public class MainActivity extends AppCompatActivity {
 
         CardLanSerialHelper serialTest = new CardLanSerialHelper("/dev/ttyAMA4", 115200, 0, 64);
         serialTest.start();
+        System.out.println("Scan your QR code");
         serialTest.setCallBack((buffer, size) -> {
+            System.out.println("Scanning");
             if (buffer == null || buffer.length <= 0) {
                 return;
             }
 
             final String qrCode = QRJoint.getCompleteQRCode(buffer, size);
             String realQRCode = ByteUtil.hexStringToString(qrCode);
+
+            System.out.println(realQRCode);
 
             Log.d("qrCode", "QrCode=" + qrCode);
             if (TextUtils.isEmpty(qrCode)) {
@@ -54,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
 
                         mTv_qc_result.setText(": " + qrCode);
                         terminal.callProc();
+                        System.out.println("Done");
                     }
 
                 }
