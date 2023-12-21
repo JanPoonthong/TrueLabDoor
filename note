@@ -1,3 +1,0 @@
-ERROR:
-    Happen when running on machine without clicking anything
-        EGLBoolean __egl_platform_create_surface_window(egl_surface*, mali_base_ctx_handle):933: =========> usage 0x900

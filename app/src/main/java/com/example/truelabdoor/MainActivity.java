@@ -21,7 +21,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView mTv_qc_result;
     TerminalConsumeDataForSystem terminal;
 
-
     protected boolean validateQrCode(String qrcode){
         return true;
     }
@@ -39,13 +38,17 @@ public class MainActivity extends AppCompatActivity {
 
         CardLanSerialHelper serialTest = new CardLanSerialHelper("/dev/ttyAMA4", 115200, 0, 64);
         serialTest.start();
+        System.out.println("Scan your QR code");
         serialTest.setCallBack((buffer, size) -> {
+            System.out.println("Scanning");
             if (buffer == null || buffer.length <= 0) {
                 return;
             }
 
             final String qrCode = QRJoint.getCompleteQRCode(buffer, size);
             String realQRCode = ByteUtil.hexStringToString(qrCode);
+
+            System.out.println(realQRCode);
 
             Log.d("qrCode", "QrCode=" + qrCode);
             if (TextUtils.isEmpty(qrCode)) {
@@ -62,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
                             openDoor();
                         }
                         terminal.callProc();
+                        System.out.println("Done");
                     }
 
                 }
