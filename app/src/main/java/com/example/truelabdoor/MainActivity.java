@@ -5,6 +5,11 @@ import android.os.Bundle;
 import android.util.Log;
 import android.text.TextUtils;
 import android.widget.TextView;
+import tw.com.prolific.driver.pl2303.PL2303Driver;
+import tw.com.prolific.driver.pl2303.PL2303Driver.DataBits;
+import tw.com.prolific.driver.pl2303.PL2303Driver.FlowControl;
+import tw.com.prolific.driver.pl2303.PL2303Driver.Parity;
+import tw.com.prolific.driver.pl2303.PL2303Driver.StopBits;
 
 import com.cardlan.twoshowinonescreen.CardLanSerialHelper;
 import com.cardlan.twoshowinonescreen.CardLanStandardBus;
@@ -16,6 +21,7 @@ import java.io.FileDescriptor;
 
 
 public class MainActivity extends AppCompatActivity {
+    PL2303Driver mSerial;
     CardLanStandardBus mCardLanDevCtrl = new CardLanStandardBus();
     private FileDescriptor QrCodeFlag = mCardLanDevCtrl.callSerialOpen("/dev/ttyAMA4", 115200, 0);
     private TextView mTv_qc_result;
