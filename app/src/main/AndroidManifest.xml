@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.truelabdoor"
-    xmlns:tools="http://schemas.android.com/tools">
+    android:versionCode="21"
+    android:versionName="2.0.2.21"
+>
 
     <uses-feature android:name="android.hardware.usb.host"/>
     <uses-permission android:name="android.permission.CHANGE_CONFIGURATION"
@@ -29,6 +33,14 @@
             <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
+
+        <receiver android:name=".StartBoot"
+            android:exported="true">
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
