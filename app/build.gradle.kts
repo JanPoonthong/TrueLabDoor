@@ -8,8 +8,8 @@ android {
 
     defaultConfig {
         applicationId = "com.example.truelabdoor"
-        minSdk = 22
-        targetSdk = 34
+        minSdk = 14
+        targetSdk = 22
         versionCode = 1
         versionName = "1.0"
 
@@ -37,7 +37,7 @@ android {
 dependencies {
 
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.9.0")
+    implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation(files("libs/cardlanlib.jar"))
     implementation(files("libs/cardlanlib.jar"))

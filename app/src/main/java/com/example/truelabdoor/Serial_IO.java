@@ -54,12 +54,14 @@ public class Serial_IO implements Runnable {
     }
     private void enumerateDriver() throws InterruptedException {
         if (!mDriver.enumerate()) {
+//            System.out.println(mDriver.enumerate());
             Thread.sleep(ENUMERATE_PAUSE);
         }
     }
 
     private boolean setupDriver() throws InterruptedException {
         Log.i(Constants.LOG_TAG, "Setting up driver ...");
+        System.out.println("Setting up driver ...");
         boolean success;
         try {
             int setup = mDriver.setup(

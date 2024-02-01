@@ -33,14 +33,6 @@ public class MainActivity extends AppCompatActivity {
     //sget-object v5, Ltw/com/prolific/driver/pl2303/PL2303Driver$Parity;->NONE:Ltw/com/prolific/driver/pl2303/PL2303Driver$Parity;
 
     //sget-object v6, Ltw/com/prolific/driver/pl2303/PL2303Driver$FlowControl;->OFF:Ltw/com/prolific/driver/pl2303/PL2303Driver$FlowControl;
-    private final SerialParameters mSerialParameters = new SerialParameters(
-            BaudRate.B9600,
-            DataBits.D8,
-            StopBits.S1,
-            Parity.NONE,
-            FlowControl.OFF);
-
-    private final Serial_IO IO = new Serial_IO(this, mSerialParameters);
 
 //    CardLanStandardBus mCardLanDevCtrl = new CardLanStandardBus();
 
@@ -52,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    protected void openDoor(){
+    protected void openDoor(Serial_IO IO){
         IO.openDoor();
         System.out.println("open");
        // String strWrite = "a";
@@ -62,6 +54,18 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
+        final SerialParameters mSerialParameters = new SerialParameters(
+                BaudRate.B9600,
+                DataBits.D8,
+                StopBits.S1,
+                Parity.NONE,
+                FlowControl.OFF);
+
+        final Serial_IO IO = new Serial_IO(this, mSerialParameters);
+
+        new Thread(IO).start();
 
         setContentView(R.layout.activity_main);
         mTv_qc_result = findViewById(R.id.tv_serial_result);
@@ -84,12 +88,13 @@ public class MainActivity extends AppCompatActivity {
             Log.d("qrCode", "QrCode=" + qrCode);
             if (TextUtils.isEmpty(qrCode)) return;
 
+
             runOnUiThread(() -> {
                 if (ByteUtil.notNull(qrCode)) {
                     String qrFormat = ": " + qrCode;
                     mTv_qc_result.setText(qrFormat);
                     if (validateQrCode(qrCode)) {
-                        openDoor();
+                        openDoor(IO);
                     }
                     terminal.callProc();
                     System.out.println("Done");
