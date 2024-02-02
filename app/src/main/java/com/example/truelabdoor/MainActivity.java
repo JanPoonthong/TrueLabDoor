@@ -159,7 +159,7 @@ private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
                     String qrFormat = ": " + qrCode;
                     mTv_qc_result.setText(qrFormat);
                     if (validateQrCode(qrCode)) {
-                        openDoor();
+                        openDoor(IO);
                     }
                     terminal.callProc();
                     System.out.println("Done");
