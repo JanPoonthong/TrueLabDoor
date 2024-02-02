@@ -1,120 +1,179 @@
 package com.example.truelabdoor;
-
 import android.content.Context;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.IOException;
 
 import tw.com.prolific.driver.pl2303.PL2303Driver;
 
-public class Serial_IO implements Runnable {
-    private static final String USB_PERMISSION = "com.example.truelabdoor.USB_PERMISSION";
-    private static final int READ_BUFFER_SIZE = 2048;
-    private static final long ENUMERATE_PAUSE = 1000L;
-    private static final long SETUP_PAUSE = 2000L;
-    private static final long READ_PAUSE = 10L;
+public class Serial_IO {
+    private PL2303Driver mSerial;
+    private Context context;
+    private SerialParameters mSerialParameters;
+    private class ThreadTrig implements Runnable {
 
-    private final Context mContext;
-    private final SerialParameters mSerialParameters;
-    private PL2303Driver mDriver;
-    private final byte[] mReadBuffer = new byte[READ_BUFFER_SIZE];
-    private final StringBuilder mLineBuilder = new StringBuilder();
-    private boolean mRunning = true;
-    private Thread mThread;
-
-    public Serial_IO(Context context, SerialParameters serialParameters) {
-        mContext = context;
-        mSerialParameters = serialParameters;
-        (mThread = new Thread(this)).start();
+        @Override
+        public void run() {
+            // Implementation of the run method
+            trig_syn();
+        }
     }
 
-    @Override
-    public void run() {
-        mDriver = new PL2303Driver(
-                (UsbManager) mContext.getSystemService(Context.USB_SERVICE),
-                mContext,
-                USB_PERMISSION);
-        boolean doneSetup = false;
-        try {
-            while (mRunning) {
-                if (!mDriver.isConnected()) {
-                    doneSetup = false;
-                    enumerateDriver();
-                } else if (mDriver.isConnected() && !doneSetup) {
-                    doneSetup = setupDriver();
-                } else {
-                    readFromDriver();
-                }
+    public Serial_IO(UsbManager usbManager, Context context, String permission) {
+        mSerial = new PL2303Driver(usbManager, context, permission);
+        this.context = context;
+        mSerialParameters = new SerialParameters();
+        setupDriver();
+        enumerateDriver();
+        openUsbSerial();
+    }
+
+    private void enumerateDriver() {
+        Log.d("enumerateDriver()", "Attempting enumerate ...");
+
+        if (mSerial.enumerate()) {
+            Log.d("enumerateDriver()", "Enumerate successful");
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        } catch (InterruptedException e) {
-            // Interruption is an expected way to terminate
-            Log.i(Constants.LOG_TAG, "Interrupted data read thread, terminating");
-        }
-    }
-    private void enumerateDriver() throws InterruptedException {
-        if (!mDriver.enumerate()) {
-//            System.out.println(mDriver.enumerate());
-            Thread.sleep(ENUMERATE_PAUSE);
+        } else {
+            Log.d("enumerateDriver()", "Enumerate failed, sleeping ...");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
-    private boolean setupDriver() throws InterruptedException {
-        Log.i(Constants.LOG_TAG, "Setting up driver ...");
-        System.out.println("Setting up driver ...");
-        boolean success;
+    private void openUsbSerial() {
+        Log.d("PL2303HXD_APLog", "Enter openUsbSerial");
+
+        if (mSerial == null) {
+            return;
+        }
+
+        if (mSerial.isConnected()) {
+            Log.d("openUsbSerial", "openUsbSerial : isConnected");
+        }
+
+        if (!mSerial.InitByBaudRate(PL2303Driver.BaudRate.B9600, 0x2bc)) {
+            if (!mSerial.PL2303Device_IsHasPermission()) {
+                Toast.makeText(context, "cannot open, maybe no permission", Toast.LENGTH_SHORT).show();
+            }
+
+            if (mSerial.PL2303Device_IsHasPermission() && !mSerial.PL2303Device_IsSupportChip()) {
+                Toast.makeText(context, "cannot open, maybe this chip has no support, please use PL2303HXD / RA / EA chip.", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Toast.makeText(context, "connected", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void setupDriver() {
+        Log.d("setupDriver()", "Setting up driver ...");
+
         try {
-            int setup = mDriver.setup(
+            int setup = mSerial.setup(
                     mSerialParameters.mBaudRate,
                     mSerialParameters.mDataBits,
                     mSerialParameters.mStopBits,
                     mSerialParameters.mParity,
                     mSerialParameters.mFlowControl);
-            boolean initByBaudRate = mDriver.InitByBaudRate(
-                    mSerialParameters.mBaudRate);
-            success = setup == 0 && initByBaudRate;
+
+            boolean initByBaudRate = mSerial.InitByBaudRate(mSerialParameters.mBaudRate);
+
+            if (setup == 0 && initByBaudRate) {
+                Log.d("setupDriver()", "Setup succeeded");
+                return;
+            }
         } catch (IOException e) {
-            success = false;
-            Log.e(Constants.LOG_TAG, e.toString());
+            e.printStackTrace();
         }
-        if (success) {
-            Log.i(Constants.LOG_TAG, "Setup succeeded");
-            return true;
-        } else {
-            Log.i(Constants.LOG_TAG, "Setup failed, sleeping ...");
-            Thread.sleep(SETUP_PAUSE);
-            return false;
+
+        Log.d("setupDriver()", "Setup failed, sleeping ...");
+
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
-    private void readFromDriver() throws InterruptedException {
-        for (int n; (n = mDriver.read(mReadBuffer)) > 0; ) {
-            receivedData(n);
+    public void active() {
+        if (mSerial != null) {
+            mSerial.setDTR(true);
         }
-        Thread.sleep(READ_PAUSE);
     }
 
-    private boolean isLineSeparator(char c) {
-        return c == '\r' || c == '\n';
+    public void idle() {
+        if (mSerial != null) {
+            mSerial.setDTR(false);
+        }
     }
 
-    private void receivedData(int n) {
-        for (int i = 0; i < n; i++) {
-            char c = (char) mReadBuffer[i];
-            if (isLineSeparator(c)) {
-                if (mLineBuilder.length() > 0) {
-                    mLineBuilder.setLength(0);
+    public boolean isExitActive() {
+        int[] ii = mSerial.PL2303HXD_GetCommModemStatus();
+        return ii[1] == 1;
+    }
+
+    public String readcard() {
+        String ret = "";
+        byte[] rbuf = new byte[20];
+        StringBuffer sbHex = new StringBuffer();
+
+        int len = mSerial.read(rbuf);
+
+        if (len < 0) {
+            Log.d("PL2303HXD_APLog", "Fail to bulkTransfer(read data)");
+            return "";
+        }
+
+        if (len > 0) {
+            for (int j = 0; j < len; j++) {
+                byte value = rbuf[j];
+
+                if ((value >= 0x61 && value <= 0x66) || (value >= 0x41 && value <= 0x46) || (value >= 0x30 && value <= 0x39)) {
+                    sbHex.append((char) value);
                 }
-            } else {
-                mLineBuilder.append(c);
+            }
+
+            if (sbHex.toString().length() >= 1) {
+                ret = sbHex.toString();
             }
         }
-    }
-    public void openDoor() {
-        String strWrite = "a";
-        byte[] bytesToWrite = strWrite.getBytes();
-        int numBytes = strWrite.length();
-        mDriver.write(bytesToWrite, numBytes);
+
+        return ret;
     }
 
+    public void trig() {
+        String strWrite = "a";
+        mSerial.write(strWrite.getBytes(), strWrite.length());
+    }
+
+    public void trig_syn() {
+        for (int i = 0; i < 50; i++) {
+            mSerial.setDTR(true);
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        mSerial.setDTR(false);
+    }
+
+
+
+    private class SerialParameters {
+        PL2303Driver.BaudRate mBaudRate = PL2303Driver.BaudRate.B9600;
+        PL2303Driver.DataBits mDataBits = PL2303Driver.DataBits.D8;
+        PL2303Driver.StopBits mStopBits = PL2303Driver.StopBits.S1;
+        PL2303Driver.Parity mParity = PL2303Driver.Parity.NONE;
+        PL2303Driver.FlowControl mFlowControl = PL2303Driver.FlowControl.OFF;
+    }
 }

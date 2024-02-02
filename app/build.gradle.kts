@@ -9,7 +9,7 @@ android {
     defaultConfig {
         applicationId = "com.example.truelabdoor"
         minSdk = 14
-        targetSdk = 22
+        targetSdk = 28
         versionCode = 1
         versionName = "1.0"
 

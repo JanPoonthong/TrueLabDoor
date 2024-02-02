@@ -2,13 +2,26 @@ package com.example.truelabdoor;
 //import java.io.FileDescriptor;
 //import android.content.Context;
 //import android.hardware.usb.UsbManager;
+import static tw.com.prolific.driver.pl2303.PL2303Driver.BaudRate.B9600;
+
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.hardware.usb.UsbDevice;
+import android.widget.Toast;
+
+import android.hardware.usb.UsbManager;
 import androidx.appcompat.app.AppCompatActivity;
+
+import tw.com.prolific.driver.pl2303.PL2303Driver;
 import tw.com.prolific.driver.pl2303.PL2303Driver.BaudRate;
 import tw.com.prolific.driver.pl2303.PL2303Driver.DataBits;
 import tw.com.prolific.driver.pl2303.PL2303Driver.FlowControl;
 import tw.com.prolific.driver.pl2303.PL2303Driver.Parity;
 import tw.com.prolific.driver.pl2303.PL2303Driver.StopBits;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.text.TextUtils;
@@ -20,9 +33,13 @@ import com.cardlan.utils.ByteUtil;
 import com.example.truelabdoor.data.TerminalConsumeDataForSystem;
 import com.example.truelabdoor.util.QRJoint;
 
+import java.util.HashMap;
+import java.util.Iterator;
 
 
 public class MainActivity extends AppCompatActivity {
+        Serial_IO IO;
+
 
     //sget-object v2, Ltw/com/prolific/driver/pl2303/PL2303Driver$BaudRate;->B9600:Ltw/com/prolific/driver/pl2303/PL2303Driver$BaudRate;
 
@@ -44,29 +61,41 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    protected void openDoor(Serial_IO IO){
-        IO.openDoor();
+    protected void openDoor(){
+//        openUsbSerial();
+        IO.trig();
         System.out.println("open");
        // String strWrite = "a";
         //mSerial.write(strWrite.getBytes(), strWrite.length());
     }
-
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//
+//        mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(Constants.ACTION_USB_PERMISSION), 0);
+//        IntentFilter filter = new IntentFilter(Constants.ACTION_USB_PERMISSION);
+//    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+//        HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
+//        UsbDevice device = deviceList.get("/dev/bus/usb/001/004");
+//        assert device != null;
+//        System.out.println(device.getDeviceProtocol());
+        IO = new Serial_IO(manager,this, Constants.ACTION_USB_PERMISSION);
 
-        final SerialParameters mSerialParameters = new SerialParameters(
-                BaudRate.B9600,
-                DataBits.D8,
-                StopBits.S1,
-                Parity.NONE,
-                FlowControl.OFF);
-
-        final Serial_IO IO = new Serial_IO(this, mSerialParameters);
-
-        new Thread(IO).start();
-
+//        HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
+//        Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
+//        System.out.println("Device List");
+//        while(deviceIterator.hasNext()){
+//            UsbDevice device = deviceIterator.next();
+//            System.out.println("device");
+//            System.out.println(device);
+//            // your code
+//        }
+//        UsbDevice device = deviceList.get("deviceName");
         setContentView(R.layout.activity_main);
         mTv_qc_result = findViewById(R.id.tv_serial_result);
         terminal = new TerminalConsumeDataForSystem();
@@ -94,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
                     String qrFormat = ": " + qrCode;
                     mTv_qc_result.setText(qrFormat);
                     if (validateQrCode(qrCode)) {
-                        openDoor(IO);
+                        openDoor();
                     }
                     terminal.callProc();
                     System.out.println("Done");
