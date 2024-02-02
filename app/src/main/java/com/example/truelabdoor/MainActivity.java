@@ -75,16 +75,52 @@ public class MainActivity extends AppCompatActivity {
 //        mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(Constants.ACTION_USB_PERMISSION), 0);
 //        IntentFilter filter = new IntentFilter(Constants.ACTION_USB_PERMISSION);
 //    }
+private void requestUsbPermission() {
+    UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+    PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(Constants.ACTION_USB_PERMISSION), 0);
+    IntentFilter filter = new IntentFilter(Constants.ACTION_USB_PERMISSION);
+    registerReceiver(usbReceiver, filter);
+
+    // Get a list of connected USB devices
+    HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+    Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
+
+    while (deviceIterator.hasNext()) {
+        UsbDevice device = deviceIterator.next();
+        usbManager.requestPermission(device, permissionIntent);
+    }
+}
+private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
+    public void onReceive(Context context, Intent intent) {
+        String action = intent.getAction();
+        if (Constants.ACTION_USB_PERMISSION.equals(action)) {
+            synchronized (this) {
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+
+                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                    if (device != null) {
+                        IO = new Serial_IO(getApplicationContext());
+                        // Permission granted, you can now access the USB device
+                        // Perform your USB-related operations here
+                    }
+                } else {
+                    // Permission denied
+                    // Handle accordingly
+                }
+            }
+        }
+    }
+};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
 //        HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
 //        UsbDevice device = deviceList.get("/dev/bus/usb/001/004");
 //        assert device != null;
 //        System.out.println(device.getDeviceProtocol());
-        IO = new Serial_IO(manager,this, Constants.ACTION_USB_PERMISSION);
+        requestUsbPermission();
+
 
 //        HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
 //        Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
@@ -131,5 +167,10 @@ public class MainActivity extends AppCompatActivity {
 
             });
         });
+    }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(usbReceiver);
     }
 }

@@ -1,5 +1,8 @@
 package com.example.truelabdoor;
+import android.app.PendingIntent;
 import android.content.Context;
+
+import android.content.Intent;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
 import android.widget.Toast;
@@ -9,9 +12,16 @@ import java.io.IOException;
 import tw.com.prolific.driver.pl2303.PL2303Driver;
 
 public class Serial_IO {
-    private PL2303Driver mSerial;
+    private static final long ENUMERATE_PAUSE = 0x3e8L;
+    private static final int READ_BUFFER_SIZE = 0x800;
+    private static final long READ_PAUSE = 0xaL;
+    private static final long SETUP_PAUSE = 0x1f4L;
+    private static final String TAG = "PL2303HXD_APLog";
+    private static final String USB_PERMISSION = Constants.ACTION_USB_PERMISSION;
     private Context context;
+    private PL2303Driver mSerial;
     private SerialParameters mSerialParameters;
+
     private class ThreadTrig implements Runnable {
 
         @Override
@@ -20,15 +30,57 @@ public class Serial_IO {
             trig_syn();
         }
     }
+    public static class SerialParameters {
+        public final PL2303Driver.BaudRate mBaudRate;
+        public final PL2303Driver.DataBits mDataBits;
+        public final PL2303Driver.StopBits mStopBits;
+        public final PL2303Driver.Parity mParity;
+        public final PL2303Driver.FlowControl mFlowControl;
 
-    public Serial_IO(UsbManager usbManager, Context context, String permission) {
-        mSerial = new PL2303Driver(usbManager, context, permission);
+        public SerialParameters(PL2303Driver.BaudRate baudRate,
+                                PL2303Driver.DataBits dataBits,
+                                PL2303Driver.StopBits stopBits,
+                                PL2303Driver.Parity parity,
+                                PL2303Driver.FlowControl flowControl) {
+            super();
+            this.mBaudRate = baudRate;
+            this.mDataBits = dataBits;
+            this.mStopBits = stopBits;
+            this.mParity = parity;
+            this.mFlowControl = flowControl;
+        }
+    }
+    /* BroadcastReceiver when insert/remove the device USB plug into/from a USB port */
+    public Serial_IO(Context context) {
         this.context = context;
-        mSerialParameters = new SerialParameters();
+
+        mSerialParameters = new SerialParameters(
+                PL2303Driver.BaudRate.B9600,
+                PL2303Driver.DataBits.D8,
+                PL2303Driver.StopBits.S1,
+                PL2303Driver.Parity.NONE,
+                PL2303Driver.FlowControl.OFF
+        );
+        PendingIntent permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(
+                Constants.ACTION_USB_PERMISSION), 0);
+
+        mSerial = new PL2303Driver((UsbManager) context.getSystemService(Context.USB_SERVICE), context, USB_PERMISSION);
+//        mSerial.setDTR(true);
         setupDriver();
         enumerateDriver();
         openUsbSerial();
     }
+//    public Serial_IO(UsbManager usbManager, Context context, String permission) {
+//        PendingIntent permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(
+//                Constants.ACTION_USB_PERMISSION), 0);
+//        mSerial = new PL2303Driver(usbManager, context, Constants.ACTION_USB_PERMISSION);
+//
+//        this.context = context;
+//        mSerialParameters = new SerialParameters();
+//        setupDriver();
+//        enumerateDriver();
+//        openUsbSerial();
+//    }
 
     private void enumerateDriver() {
         Log.d("enumerateDriver()", "Attempting enumerate ...");
@@ -165,15 +217,5 @@ public class Serial_IO {
             }
         }
         mSerial.setDTR(false);
-    }
-
-
-
-    private class SerialParameters {
-        PL2303Driver.BaudRate mBaudRate = PL2303Driver.BaudRate.B9600;
-        PL2303Driver.DataBits mDataBits = PL2303Driver.DataBits.D8;
-        PL2303Driver.StopBits mStopBits = PL2303Driver.StopBits.S1;
-        PL2303Driver.Parity mParity = PL2303Driver.Parity.NONE;
-        PL2303Driver.FlowControl mFlowControl = PL2303Driver.FlowControl.OFF;
     }
 }
