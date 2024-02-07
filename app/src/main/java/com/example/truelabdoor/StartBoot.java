@@ -7,7 +7,6 @@ import android.hardware.usb.UsbManager;
 
 import java.util.Objects;
 
-import tw.com.prolific.driver.pl2303.PL2303Driver;
 
 public class StartBoot extends BroadcastReceiver {
     @Override
@@ -18,10 +17,5 @@ public class StartBoot extends BroadcastReceiver {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(i);
         }
-//        if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
-//            Intent i = new Intent(context, MainActivity.class);
-//            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//            context.startActivity(i);
-//        }
     }
 }
