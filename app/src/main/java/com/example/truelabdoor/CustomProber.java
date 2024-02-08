@@ -1,6 +1,5 @@
-package de.kai_morich.simple_usb_terminal;
+package com.example.truelabdoor;
 
-import com.hoho.android.usbserial.driver.FtdiSerialDriver;
 import com.hoho.android.usbserial.driver.ProbeTable;
 import com.hoho.android.usbserial.driver.ProlificSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
