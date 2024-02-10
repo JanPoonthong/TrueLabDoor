@@ -1,86 +1,71 @@
 package com.example.truelabdoor;
 
-
-import com.hoho.android.usbserial.driver.UsbSerialDriver;
-import com.hoho.android.usbserial.driver.UsbSerialPort;
-import com.hoho.android.usbserial.driver.UsbSerialProber;
-
-
-
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
-//import android.os.Build;
-//import android.widget.Toast;
-
 import android.hardware.usb.UsbManager;
-
-import androidx.appcompat.app.AppCompatActivity;
-
-
-import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.text.TextUtils;
+import android.util.Log;
 import android.widget.TextView;
 
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.cardlan.twoshowinonescreen.CardLanSerialHelper;
-// import com.cardlan.twoshowinonescreen.CardLanStandardBus;
 import com.cardlan.utils.ByteUtil;
 import com.example.truelabdoor.data.TerminalConsumeDataForSystem;
 import com.example.truelabdoor.util.QRJoint;
+import com.hoho.android.usbserial.driver.UsbSerialDriver;
+import com.hoho.android.usbserial.driver.UsbSerialPort;
+import com.hoho.android.usbserial.driver.UsbSerialProber;
 
 import java.io.IOException;
 
 
 public class MainActivity extends AppCompatActivity {
     private final BroadcastReceiver broadcastReceiver;
-    private Boolean portConnected = false;
-    private enum UsbPermission { Unknown, Requested, Granted, Denied }
-
-    private UsbPermission usbPermission = UsbPermission.Unknown;
-
     IntentFilter filter = new IntentFilter(Constants.ACTION_USB_PERMISSION);
     UsbSerialPort port;
-//    CardLanStandardBus mCardLanDevCtrl = new CardLanStandardBus();
-
-//    private final FileDescriptor QrCodeFlag = mCardLanDevCtrl.callSerialOpen("/dev/ttyAMA4", 115200, 0);
-    private TextView mTv_qc_result;
     TerminalConsumeDataForSystem terminal;
+    private Boolean portConnected = false;
+    private UsbPermission usbPermission = UsbPermission.Unknown;
+    private enum UsbPermission {Unknown, Requested, Granted, Denied}
+    private TextView mTv_qc_result;
 
     public MainActivity() {
         broadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if(Constants.INTENT_ACTION_GRANT_USB.equals(intent.getAction())) {
+                if (Constants.INTENT_ACTION_GRANT_USB.equals(intent.getAction())) {
                     usbPermission = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
                             ? UsbPermission.Granted : UsbPermission.Denied;
                     connect();
                 }
             }
-        };    }
+        };
+    }
 
-    protected boolean validateQrCode(String qrcode){
+    protected boolean validateQrCode(String qrcode) {
         return true;
     }
 
-    protected void openDoor(){
-//        openUsbSerial();
-        //IO.trig();
+    protected void openDoor() {
         System.out.println("open");
-       // String strWrite = "a";
-        //mSerial.write(strWrite.getBytes(), strWrite.length());
     }
 
-
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public void onResume() {
         super.onResume();
-        registerReceiver(broadcastReceiver, new IntentFilter(Constants.INTENT_ACTION_GRANT_USB));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            registerReceiver(broadcastReceiver, new IntentFilter(Constants.INTENT_ACTION_GRANT_USB), Context.RECEIVER_NOT_EXPORTED);
+        }
 
     }
 
@@ -90,16 +75,14 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
     }
 
-    public void connect(){
-        System.out.print("run");
-//        PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(Constants.ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
-
+    public void connect() {
         UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        
         UsbSerialProber usbCustomProber = CustomProber.getCustomProber();
         UsbSerialDriver driver = null;
-        for(UsbDevice device : manager.getDeviceList().values()) {
+        for (UsbDevice device : manager.getDeviceList().values()) {
             driver = usbCustomProber.probeDevice(device);
-            if(driver != null) {
+            if (driver != null) {
                 System.out.println(device);
                 System.out.println(driver);
                 break;
@@ -110,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
 
         UsbDevice device = driver.getDevice();
         UsbDeviceConnection connection = manager.openDevice(device);
-        if(connection == null && usbPermission == UsbPermission.Unknown && !manager.hasPermission(driver.getDevice())) {
+        if (connection == null && usbPermission == UsbPermission.Unknown && !manager.hasPermission(driver.getDevice())) {
             usbPermission = UsbPermission.Requested;
             int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_MUTABLE : 0;
             PendingIntent usbPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(Constants.INTENT_ACTION_GRANT_USB), flags);
@@ -118,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         System.out.println(connection);
-        UsbSerialPort port = driver.getPorts().get(0); // Most devices have just one port (port 0)
+        UsbSerialPort port = driver.getPorts().get(0);
         System.out.println(port);
         try {
             port.open(connection);
@@ -138,30 +121,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        connect();
+//        connect();
 
-//        HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
-//        UsbDevice device = deviceList.get("/dev/bus/usb/001/004");
-//        assert device != null;
-//        System.out.println(device.getDeviceProtocol());
-        //UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        //List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
-        //if (availableDrivers.isEmpty()) {
-          //  return;
-        //}
-/*        requestUsbPermission();*/
-
-
-//        HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
-//        Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
-//        System.out.println("Device List");
-//        while(deviceIterator.hasNext()){
-//            UsbDevice device = deviceIterator.next();
-//            System.out.println("device");
-//            System.out.println(device);
-//            // your code
-//        }
-//        UsbDevice device = deviceList.get("deviceName");
         setContentView(R.layout.activity_main);
         mTv_qc_result = findViewById(R.id.tv_serial_result);
         terminal = new TerminalConsumeDataForSystem();
@@ -198,8 +159,10 @@ public class MainActivity extends AppCompatActivity {
             });
         });
     }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
     }
+
 }
