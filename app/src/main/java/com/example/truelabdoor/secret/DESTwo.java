@@ -1,7 +1,7 @@
 package com.example.truelabdoor.secret;
 
-import com.example.truelabdoor.util.CardlanLog;
 import com.cardlan.twoshowinonescreen.CardLanStandardBus;
+import com.example.truelabdoor.util.CardlanLog;
 
 
 public class DESTwo {
@@ -10,7 +10,8 @@ public class DESTwo {
     /**
      * This method is used to encrypt the card{@link CardLanDes#callDesCard(byte[], byte[])},
      * Leave it to the underlying hardware to process and get the results.
-     * @param data card sn.
+     *
+     * @param data     card sn.
      * @param keyBytes encrypted card sn.
      * @return byte[]
      */

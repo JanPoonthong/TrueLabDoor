@@ -12,16 +12,29 @@ import com.cardlan.utils.ByteUtil;
 public class CpuCardSecretKeyHelper {
 
     //The key related
-    private byte[] assembleBytes = new byte[]{0x26, (byte) 0x91, 0x13, 0x00};
+    private final byte[] assembleBytes = new byte[]{0x26, (byte) 0x91, 0x13, 0x00};
 
-    private String hexSrcKey = "1122334455667788";
+    private final String hexSrcKey = "1122334455667788";
 
     private String mErrorMsg = null;
 
-    private CardLanStandardBus mCardLanDes = new CardLanStandardBus();
+    private final CardLanStandardBus mCardLanDes = new CardLanStandardBus();
+    //File selection
+    private final String cmd_file_select = "00A40000023F0100";
+    //Initialize consumption _ headers
+    private final String cmd_init_consume = "805001020B";
+    //Initialize the consumption _ key index
+    private final String cmd_init_consume_key_index = "01";
+    //Initial consumption _ transaction amount (cent)
+    private final String cmd_init_consume_fee = "00000001";
+    //Initialize the consumer transaction terminal number
+    private final String cmd_init_consume_terminal_no = "100000000321";
+    //Initializes the consumption terminator
+    private final String cmd_init_consume_end = "0F";
 
     /**
      * Access the encrypted key of the CPU card through sn.
+     *
      * @param cardSn
      * @return
      */
@@ -106,21 +119,9 @@ public class CpuCardSecretKeyHelper {
         return mErrorMsg;
     }
 
-    //File selection
-    private String cmd_file_select = "00A40000023F0100";
-    //Initialize consumption _ headers
-    private String cmd_init_consume = "805001020B";
-    //Initialize the consumption _ key index
-    private String cmd_init_consume_key_index = "01";
-    //Initial consumption _ transaction amount (cent)
-    private String cmd_init_consume_fee = "00000001";
-    //Initialize the consumer transaction terminal number
-    private String cmd_init_consume_terminal_no = "100000000321";
-    //Initializes the consumption terminator
-    private String cmd_init_consume_end = "0F";
-
     /**
-     *　Gets the key for the consumption argument
+     * 　Gets the key for the consumption argument
+     *
      * @param consumeInitBytes Consumes the bytes returned after initialization
      * @return byte[]
      */
@@ -133,10 +134,10 @@ public class CpuCardSecretKeyHelper {
      * Call the{@link CardLanDes#callRunDes(char, char, byte[], byte[], byte[])}. Gets the encrypted byte array
      *
      * @param srcBytes The encrypted source array
-     * @param keyBytes　Encrypted key
+     * @param keyBytes 　Encrypted key
      * @return
      */
-    public byte[] callRunDes(byte[] srcBytes , byte[] keyBytes) {
+    public byte[] callRunDes(byte[] srcBytes, byte[] keyBytes) {
         mErrorMsg = null;
         byte[] returnBytes = null;
         if (!ByteUtil.notNull(srcBytes)) {
@@ -159,6 +160,7 @@ public class CpuCardSecretKeyHelper {
     /**
      * Call back any length of MAC,
      * {@link CardLanDes#MacAnyLength(byte[] initIn, byte[] srcBytes, byte[] outBytes, byte[] keyBytes)}.
+     *
      * @param srcBytes
      * @param keyBytes Encrypted key converted array
      * @return
@@ -183,7 +185,6 @@ public class CpuCardSecretKeyHelper {
         }
         return returnBytes;
     }
-
 
 
 }

@@ -4,7 +4,7 @@ import android.os.Message;
 
 /**
  * 不需要处理handler 消息的线程.只需要重写 doRun 方法.
- *
+ * <p>
  * Created by zhoushenghua on 18-6-23.
  */
 

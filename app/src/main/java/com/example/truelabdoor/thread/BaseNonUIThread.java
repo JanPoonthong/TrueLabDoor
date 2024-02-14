@@ -17,7 +17,7 @@ import com.example.truelabdoor.util.CardlanLog;
 
 public abstract class BaseNonUIThread<T> extends Thread {
 
-    private Looper  baseLooper;
+    private Looper baseLooper;
     private Handler mBaseHandler;
 
     private boolean needInitHandler = true;
@@ -38,7 +38,6 @@ public abstract class BaseNonUIThread<T> extends Thread {
 
     /**
      * 获取当前线程的 looper.
-     *
      *
      * @return Looper
      */
@@ -61,6 +60,7 @@ public abstract class BaseNonUIThread<T> extends Thread {
 
     /**
      * 获取当前线程的handler
+     *
      * @param baseNonUIThread
      * @return Handler
      */
@@ -85,22 +85,9 @@ public abstract class BaseNonUIThread<T> extends Thread {
         baseNonUIThread.getThreadHandler(baseNonUIThread).sendMessage(message);
     }
 
-
-    private class BaseHandler extends Handler {
-
-        public BaseHandler(Looper looper) {
-
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            doHandlerMsg(msg);
-        }
-    }
-
     /**
      * 退出
+     *
      * @return boolean
      */
     public boolean quit() {
@@ -130,6 +117,19 @@ public abstract class BaseNonUIThread<T> extends Thread {
      * @param msg
      */
     public abstract void doHandlerMsg(Message msg);
+
+    private class BaseHandler extends Handler {
+
+        public BaseHandler(Looper looper) {
+
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            doHandlerMsg(msg);
+        }
+    }
 
 
 }

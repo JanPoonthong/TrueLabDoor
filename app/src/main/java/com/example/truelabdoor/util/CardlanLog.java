@@ -9,7 +9,7 @@ package com.example.truelabdoor.util;
  *  @description：  To print the log
  */
 public class CardlanLog {
-    private static boolean printOnConsole = true;
+    private static final boolean printOnConsole = true;
 
 
     public CardlanLog() {

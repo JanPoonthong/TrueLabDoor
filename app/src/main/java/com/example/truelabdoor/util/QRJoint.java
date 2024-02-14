@@ -5,6 +5,7 @@ import com.cardlan.utils.ByteUtil;
 public class QRJoint {
 
     static StringBuffer completeBuffer = new StringBuffer();
+
     /**
      * 获取完整的QRCode
      *
@@ -26,7 +27,7 @@ public class QRJoint {
         if (completeBuffer.length() <= 4) {
             return null;
         }
-        if (!completeBuffer.toString().substring(completeBuffer.toString().length() - 4).equals("0D0A")) {
+        if (!completeBuffer.toString().endsWith("0D0A")) {
             return null;
         } else {
             String qrcode = completeBuffer.substring(0, completeBuffer.lastIndexOf("0D0A"));

@@ -6,32 +6,34 @@ import com.cardlan.utils.ByteUtil;
 
 /**
  * card operation util
- *
+ * <p>
  * Created by cardlan on 18-6-5.
  */
 
 public class CardReadWriteUtil {
 
-    private CardLanStandardBus mCardLanDevCtrl;
-
-    private boolean mHasInitDev;
-
     private static final int S_Reset_buffer_size = 32;
-
+    private final CardLanStandardBus mCardLanDevCtrl;
+    private boolean mHasInitDev;
     private boolean mHasGetResetBytes = false;
 
     private int mInitStatus = -1;
 
     private String TAG;
 
+    public CardReadWriteUtil() {
+        mCardLanDevCtrl = new CardLanStandardBus();
+    }
+
     /**
      * get the card sn
+     *
      * @return return the card sn byte array, if not search card, it return null
      */
     public byte[] getCardResetBytes() {
         initDev();
         byte[] resetByte = new byte[S_Reset_buffer_size];
-            int cardResult = mCardLanDevCtrl.callCardReset(resetByte);
+        int cardResult = mCardLanDevCtrl.callCardReset(resetByte);
         CardlanLog.debugOnConsole(this.getClass(), "CardType:" + cardResult);
         if (cardResult == 1) {
             mHasGetResetBytes = false;
@@ -39,10 +41,6 @@ public class CardReadWriteUtil {
         }
         mHasGetResetBytes = true;
         return resetByte;
-    }
-
-    public CardReadWriteUtil() {
-        mCardLanDevCtrl = new CardLanStandardBus();
     }
 
     /**
@@ -74,10 +72,10 @@ public class CardReadWriteUtil {
      * Call the{@link CardLanDevCtrl#callReadOneSectorDataFromCard(char SectorNo, char BlockNo, char VerifyFlag, byte[] key_array, char mode)},
      * Read data from a sector or block
      *
-     * @param readSector Sector index
-     * @param readindex  block index
-     * @param readkey The check Key for the read operation
-     * @param readKeyArea  read block of Key,default:0x0b,It is only can operation to "0x0a" or "0x0b"
+     * @param readSector  Sector index
+     * @param readindex   block index
+     * @param readkey     The check Key for the read operation
+     * @param readKeyArea read block of Key,default:0x0b,It is only can operation to "0x0a" or "0x0b"
      * @return byte[]
      */
     public byte[] callReadJNI(char readSector, char readindex, byte[] readkey, char readKeyArea) {
@@ -106,11 +104,11 @@ public class CardReadWriteUtil {
      * Writes data to the card
      *
      * @param writeSectorStr  Sector index
-     * @param writeindexStr  block index
-     * @param writeHexStr  Write hexadecimal
+     * @param writeindexStr   block index
+     * @param writeHexStr     Write hexadecimal
      * @param hexWriteKey     default:"0xFFFFFFFFFFFF"
      * @param writeKeyAreaStr default:"0b"
-     * @return  Returns the status of the write operation was successful
+     * @return Returns the status of the write operation was successful
      */
     public int callWriteJNI(String writeSectorStr, String writeindexStr, String writeHexStr, String
             hexWriteKey, String writeKeyAreaStr) {
@@ -135,7 +133,7 @@ public class CardReadWriteUtil {
      * @param writeSector Sector index
      * @param writeindex  block index
      * @param writeHexStr Write hexadecimal
-     * @param writeKey the check Key for the read operation
+     * @param writeKey    the check Key for the read operation
      * @param readKeyArea The area to read the key
      * @return int
      */
@@ -186,13 +184,13 @@ public class CardReadWriteUtil {
         return ByteUtil.hexStringToByteArray(hex);
     }
 
+    public boolean ismHasInitDev() {
+        return mHasInitDev;
+    }
+
     public void setmHasInitDev(boolean mHasInitDev) {
         this.mHasInitDev = mHasInitDev;
 
-    }
-
-    public boolean ismHasInitDev() {
-        return mHasInitDev;
     }
 
     public void setmHasGetResetBytes(boolean mHasGetResetBytes) {
@@ -202,7 +200,8 @@ public class CardReadWriteUtil {
     /**
      * Call the{@link CardLanDevCtrl#callCpuSendCmd(byte[] cmdArray, byte[] receiveArray)},
      * CPU card sends CMD command to communicate with hardware;
-     * @param cmdArray cmd array
+     *
+     * @param cmdArray     cmd array
      * @param receiveArray receive array
      * @return
      */

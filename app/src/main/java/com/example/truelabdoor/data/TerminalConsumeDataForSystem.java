@@ -5,6 +5,8 @@ import android.content.Context;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
+import com.cardlan.utils.ByteUtil;
+import com.cardlan.utils.CalendarUtil;
 import com.example.truelabdoor.secret.DESTwo;
 import com.example.truelabdoor.secret.ICardDataListener;
 import com.example.truelabdoor.thread.ReadCardNonUIThread;
@@ -12,8 +14,6 @@ import com.example.truelabdoor.util.AbstractBaseLogClass;
 import com.example.truelabdoor.util.CardReadWriteUtil;
 import com.example.truelabdoor.util.CardlanLog;
 import com.example.truelabdoor.util.CpuCardSecretKeyHelper;
-import com.cardlan.utils.ByteUtil;
-import com.cardlan.utils.CalendarUtil;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -24,18 +24,80 @@ import java.util.Arrays;
  * Created by cardlan on 18-6-4.
  * Terminal consumption data this class supports
  * reading and writing of unauthorized CARDS and authorization CARDS
- *
  */
 
 public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
 
-    //Consumption amount, unit cent
-    private int mConsumeFee;
-
-    //Card read threads
-    private Thread mReadThread;
+    private static final String procpath = "/proc/gpio_set/rp_gpio_set";
+    private static final String open_bee_voice = "c_24_1_1";
 
 //    private boolean mNeedStartReadThreadWhenSetConsumeFee = true;
+    private static final String close_bee_voice = "c_24_1_0";
+    //Consumption amount, unit cent
+    private int mConsumeFee;
+    //Card read threads
+    private Thread mReadThread;
+    private String mReadOrWriteKeyHexStr = null;
+    /**
+     * Total number of sectors read, default 4
+     */
+    private int mSectorReadNumber = 4;
+    /**
+     * Sector reads index, default 0
+     */
+    private int mSectorReadIndex = 1;
+    private final CardReadWriteUtil mCardUtil = new CardReadWriteUtil();
+    //Is it an authorization card
+    private boolean isAuthCard;
+    //The key related
+    private final byte[] assembleBytes = new byte[]{0x26, (byte) 0x91, 0x13, 0x00};
+
+
+    /**
+     * Card data list
+     * key ：  sector-index（ sector + index）
+     * value：byte array
+     */
+//    private HashMap<String, byte[]> mCardBytes = new HashMap<>();
+    //The system authorization card is relevant 0x82,0x26,0x00,0x36,0x82,0x42,0x27,0x79
+    private final byte[] desKeyBytes = new byte[]{(byte) 0x82, 0x26, 0x00, 0x36, (byte) 0x82, 0x42,
+            0x27, 0x79};
+    private final byte[] checkBytes = new byte[]{0x55, (byte) 0xa0, (byte) 0xa1, (byte) 0xa2};
+    private final byte[] binNameArray = new byte[]{0x3f, 0x01};
+    private final byte[] selfileDffciArray = new byte[]{0x00, (byte) 0xa4, 0x00, 0x00};
+
+    //Buzzer parameters
+    private final String ppse = "2PAY.SYS.DDF01";
+    private final String getBalance = "GET BALANCE";
+    private byte[] receiveBytes = null;
+    private final int readSize = 128;
+    private Thread mReadCpuThread;
+    private boolean mReadFlag = true;
+    //File selection
+    private final String cmd_file_select = "00A40000023F0100";
+    //Initialize the consumption header
+    private final String cmd_init_consume = "805001020B";
+    //Initialize the consumer key index
+    private final String cmd_init_consume_key_index = "01";
+    //Initial consumption transaction amount (cent)
+    private final String cmd_init_consume_fee = "00000001";
+    //Initialize the consumer transaction terminal number
+    private final String cmd_init_consume_terminal_no = "100000000321";
+    //Initializes the consumption terminator
+    private final String cmd_init_consume_end = "0F";
+    //debit　The command header
+    private final String cmd_debit = "805401000F";
+    //Command the tail
+    private final String cmd_consume_end = "08";
+    private byte[] fileBytes = null;
+    //count of consumption
+    private int consumeCount = 8;
+
+
+    //===================================Cpu卡===========================================
+    private final CpuCardSecretKeyHelper mCpuCardSecretKeyHelper = new CpuCardSecretKeyHelper();
+    //Initializes the resulting array of consumption
+    private byte[] initCpuConsumeBytes;
 
     public int getmConsumeFee() {
         return mConsumeFee;
@@ -49,33 +111,9 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
         return mConsumeFee > 0;
     }
 
-    private String mReadOrWriteKeyHexStr = null;
-
     public String getmReadOrWriteKeyHexStr() {
         return mReadOrWriteKeyHexStr;
     }
-
-    /**
-     * Total number of sectors read, default 4
-     */
-    private int mSectorReadNumber = 4;
-    /**
-     * Sector reads index, default 0
-     */
-    private int mSectorReadIndex = 1;
-
-    private CardReadWriteUtil mCardUtil = new CardReadWriteUtil();
-
-    //Is it an authorization card
-    private boolean isAuthCard;
-
-
-    /**
-     * Card data list
-     * key ：  sector-index（ sector + index）
-     * value：byte array
-     */
-//    private HashMap<String, byte[]> mCardBytes = new HashMap<>();
 
     /**
      * This method will start a thread to read the card information continuously.
@@ -89,7 +127,6 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
         mReadThread = null;
         if (mReadThread != null) {
             if (mReadThread.isAlive()) {
-                return;
             }
         } else {
             mReadThread = new ReadCardNonUIThread(new Runnable() {
@@ -106,7 +143,7 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
                             resetBytes = mCardUtil.getCardResetBytes();
                             if (!ByteUtil.notNull(resetBytes)) {
                                 CardlanLog.debugOnConsole(TerminalConsumeDataForSystem.class,
-                                                          "Did not find the card");
+                                        "Did not find the card");
                                 continue;
                             }
                             try {
@@ -237,7 +274,6 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
         return writeStatus == 5;
     }
 
-
     /**
      * Sets the total number of sectors to read, The default is 7.
      *
@@ -255,12 +291,6 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
     public void setmSectorReadIndex(int mSectorReadIndex) {
         this.mSectorReadIndex = mSectorReadIndex;
     }
-
-    //Buzzer parameters
-
-    private static final String procpath = "/proc/gpio_set/rp_gpio_set";
-    private static final String open_bee_voice = "c_24_1_1";
-    private static final String close_bee_voice = "c_24_1_0";
 
     private String writeProc(String path, byte[] buffer) {
         try {
@@ -289,7 +319,6 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
         writeProc(procpath, close_bee_voice.getBytes());
     }
 
-
     public void hideSoftKeyboard(EditText mEditxt, Activity mAct) {
         InputMethodManager imm = (InputMethodManager) mAct.getSystemService(Context
                 .INPUT_METHOD_SERVICE);
@@ -307,17 +336,10 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
         }
     }
 
-    //The key related
-    private byte[] assembleBytes = new byte[]{0x26, (byte) 0x91, 0x13, 0x00};
-    //The system authorization card is relevant 0x82,0x26,0x00,0x36,0x82,0x42,0x27,0x79
-    private byte[] desKeyBytes = new byte[]{(byte) 0x82, 0x26, 0x00, 0x36, (byte) 0x82, 0x42,
-            0x27, 0x79};
-    private byte[] checkBytes = new byte[]{0x55, (byte) 0xa0, (byte) 0xa1, (byte) 0xa2};
-
-
     /**
      * The key calculation method of the system authorization card is inconsistent,
      * so it is not suitable for the system authorization card
+     *
      * @param cardSNBytes
      * @return the result of NormalCardReadKey.
      * @throws KeyErrorException
@@ -359,6 +381,7 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
     /**
      * calculate to the key to read the authorization card,
      * which is used to read the contents of the system authorization card
+     *
      * @param cardSNBytes sn of card to array;
      * @return the result of AuthCardReadKey.
      * @throws KeyErrorException
@@ -401,6 +424,7 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
     /**
      * Read the key to the authorization card,
      * which is used to decrypt the key for ordinary CARDS.
+     *
      * @param sectorOneIndexZerobytes The first sector 0 blocks of bytes
      * @return
      */
@@ -429,6 +453,7 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
 
     /**
      * Reads the bytes of the first sector, the 0th field
+     *
      * @param readKeys
      * @return byte[]
      */
@@ -461,25 +486,12 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
         return isAuthCard;
     }
 
-
     public boolean readThreadIsAlive() {
         if (mReadThread != null) {
             return mReadThread.isAlive() && !mReadThread.isInterrupted();
         }
         return false;
     }
-
-
-    //===================================Cpu卡===========================================
-
-    private byte[] binNameArray = new byte[]{0x3f, 0x01};
-    private byte[] selfileDffciArray = new byte[]{0x00, (byte) 0xa4, 0x00, 0x00};
-    private String ppse = "2PAY.SYS.DDF01";
-    private String getBalance = "GET BALANCE";
-    private byte[] receiveBytes = null;
-    private int readSize = 128;
-    private Thread mReadCpuThread;
-    private boolean mReadFlag = true;
 
     public void startReadCpuCardThread() {
         mReadCpuThread = new ReadCardNonUIThread(new Runnable() {
@@ -532,7 +544,7 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
                             "(" + balanceResult + ")==============");
 
                     try {
-                        Thread.sleep(5 * 1000l);
+                        Thread.sleep(5 * 1000L);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -559,13 +571,13 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
             CardlanLog.debugOnConsole(this.getClass(), "cpu cmd is null");
             return null;
         }
-        CardlanLog.debugOnConsole(this.getClass(), "sendCmd:"+ByteUtil.byteArrayToHexString
+        CardlanLog.debugOnConsole(this.getClass(), "sendCmd:" + ByteUtil.byteArrayToHexString
                 (sendCmd));
         byte[] receiveResultBytes = new byte[readSize];
         int result = mCardUtil.callSendCpuCmd(sendCmd, receiveResultBytes);
         CardlanLog.debugOnConsole(this.getClass(), "send cpu cmd result status is " + result);
 
-        byte[] returnBytes = checkCpuTradeSuccess(receiveResultBytes,needCheckStatus);
+        byte[] returnBytes = checkCpuTradeSuccess(receiveResultBytes, needCheckStatus);
 
         if (!ByteUtil.notNull(returnBytes)) {
             CardlanLog.debugOnConsole(this.getClass(), "send cpu cmd result byte array is " +
@@ -578,6 +590,7 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
     /**
      * Verify that the CPU card transaction is successful,
      * and determine if the data at the end of the data is 9000.
+     *
      * @param receiveResultBytes Operate on the CPU card return results
      * @return boolean return real value, if check success
      */
@@ -603,39 +616,13 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
         return returnBytes;
     }
 
-
     public byte[] getCardResetBytes() {
         return mCardUtil.getCardResetBytes();
     }
 
-    //File selection
-    private String cmd_file_select = "00A40000023F0100";
-    //Initialize the consumption header
-    private String cmd_init_consume = "805001020B";
-    //Initialize the consumer key index
-    private String cmd_init_consume_key_index = "01";
-    //Initial consumption transaction amount (cent)
-    private String cmd_init_consume_fee = "00000001";
-    //Initialize the consumer transaction terminal number
-    private String cmd_init_consume_terminal_no = "100000000321";
-    //Initializes the consumption terminator
-    private String cmd_init_consume_end = "0F";
-    //debit　The command header
-    private String cmd_debit = "805401000F";
-    //Command the tail
-    private String cmd_consume_end = "08";
-
-    private byte[] fileBytes = null;
-    //count of consumption
-    private int consumeCount = 8;
-
-    private CpuCardSecretKeyHelper mCpuCardSecretKeyHelper = new CpuCardSecretKeyHelper();
-
-    //Initializes the resulting array of consumption
-    private byte[] initCpuConsumeBytes;
-
     /**
      * Gets the key for the consumption parameter.
+     *
      * @return byte[]
      */
     public byte[] getConsumeInitKey() {
@@ -672,9 +659,9 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
         }
         cmdSb.append(cmd_init_consume_terminal_no);
         cmdSb.append(cmd_init_consume_end);
-        printLog("init Command is:" + cmdSb.toString());
+        printLog("init Command is:" + cmdSb);
         returnBytes = sendCpuCmd(ByteUtil.hexStringToByteArray(cmdSb.toString()), true);
-        printLog("init The result of the command is:"+ByteUtil.byteArrayToHexArray(returnBytes));
+        printLog("init The result of the command is:" + ByteUtil.byteArrayToHexArray(returnBytes));
         return returnBytes;
     }
 
@@ -696,7 +683,7 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
             return returnBytes;
         }
         printLog("keys:" + ByteUtil.byteArrayToHexArray(mkeys));
-        printLog("initCpuConsumeBytes : "+ ByteUtil.byteArrayToHexArray(initCpuConsumeBytes));
+        printLog("initCpuConsumeBytes : " + ByteUtil.byteArrayToHexArray(initCpuConsumeBytes));
         byte[] sendCmdBytes = null;
         sendCmdBytes = ByteUtil.copyBytes(initCpuConsumeBytes, 11, 4);
         sendCmdBytes = ByteUtil.addBytes(sendCmdBytes, ByteUtil.copyBytes(initCpuConsumeBytes, 4,
@@ -707,7 +694,7 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
         if (!ByteUtil.notNull(sendCmdBytes)) {
             return returnBytes;
         }
-        printLog("sendCmdBytes:"+ByteUtil.byteArrayToHexArray(sendCmdBytes));
+        printLog("sendCmdBytes:" + ByteUtil.byteArrayToHexArray(sendCmdBytes));
         returnBytes = mCpuCardSecretKeyHelper.callRunDes(sendCmdBytes, mkeys);
         printLog(returnBytes);
         return returnBytes;
@@ -761,6 +748,7 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
 
     /**
      * According to the input amount of CPU card consumption process,and the consumption result is returned
+     *
      * @param consumeFee
      * @return byte[] Return consumption results
      */
@@ -785,7 +773,7 @@ public class TerminalConsumeDataForSystem extends AbstractBaseLogClass {
 
         if (ByteUtil.notNull(returnBytes)) {
             //Consumption is successful.
-            consumeCount ++;
+            consumeCount++;
         }
         return returnBytes;
     }

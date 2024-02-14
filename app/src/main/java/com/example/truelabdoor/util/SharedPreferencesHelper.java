@@ -10,10 +10,10 @@ import java.util.Map;
  */
 public class SharedPreferencesHelper {
 
-    private SharedPreferences sharedPreferences;
+    private final SharedPreferences sharedPreferences;
     /*
      * Save your phone's name
-     */private SharedPreferences.Editor editor;
+     */private final SharedPreferences.Editor editor;
 
     public SharedPreferencesHelper(Context context, String FILE_NAME) {
         sharedPreferences = context.getSharedPreferences(FILE_NAME,
@@ -23,7 +23,8 @@ public class SharedPreferencesHelper {
 
     /**
      * put the saved data
-     * @param key The name of the preference to modify.
+     *
+     * @param key    The name of the preference to modify.
      * @param object
      */
     public void put(String key, Object object) {
@@ -45,6 +46,7 @@ public class SharedPreferencesHelper {
 
     /**
      * Get the saved data
+     *
      * @param key
      * @param defaultObject
      * @return

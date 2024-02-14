@@ -34,28 +34,26 @@ public abstract class DefaultBaseNonUIThread<T> extends BaseNonUIThread<T> {
 
     @Override
     public void doHandlerMsg(Message msg) {
-        switch (msg.what) {
-            case SF_ADD_MSG:
-                //
-                T handlerEntity = (T) msg.obj;
-                if (handlerEntity != null) {
-                    doHandlerMsg(handlerEntity);
-                }
-                break;
-            default:
-                doHandlerMessage(msg);
-                break;
+        if (msg.what == SF_ADD_MSG) {//
+            T handlerEntity = (T) msg.obj;
+            if (handlerEntity != null) {
+                doHandlerMsg(handlerEntity);
+            }
+        } else {
+            doHandlerMessage(msg);
         }
     }
 
     /**
      * 处理 handler 中发来的消息,消息为泛型类型,消息不为null.
+     *
      * @param handlerEntity
      */
     public abstract void doHandlerMsg(T handlerEntity);
 
     /**
      * 处理 handler 中发来的消息,消息为泛型类型,消息不为null.
+     *
      * @param handlerMessage
      */
     public abstract void doHandlerMessage(Message handlerMessage);
