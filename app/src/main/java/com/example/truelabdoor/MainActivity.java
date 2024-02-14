@@ -26,6 +26,7 @@ import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 
 import java.io.IOException;
+import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -74,19 +75,16 @@ public class MainActivity extends AppCompatActivity {
 
     public void connect() {
         UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-
+        // Get UsbSerialProber
         UsbSerialProber usbCustomProber = CustomProber.getCustomProber();
-        UsbSerialDriver driver = null;
-        for (UsbDevice device : manager.getDeviceList().values()) {
-            driver = usbCustomProber.probeDevice(device);
-            if (driver != null) {
-                System.out.println(device);
-                System.out.println(driver);
-                break;
-            }
+        // Get ProlificSerialDriver
+        List<UsbSerialDriver> drivers = usbCustomProber.findAllDrivers(manager);
+        if (drivers.isEmpty()) {
+            System.out.println("Driver is empty, no driver in array");
+            return;
         }
-
-        assert driver != null;
+        // Get the first available driver which is the compatible one
+        UsbSerialDriver driver = drivers.get(0);
 
         UsbDevice device = driver.getDevice();
         UsbDeviceConnection connection = manager.openDevice(device);
@@ -97,9 +95,7 @@ public class MainActivity extends AppCompatActivity {
             manager.requestPermission(driver.getDevice(), usbPermissionIntent);
             return;
         }
-        System.out.println(connection);
         UsbSerialPort port = driver.getPorts().get(0);
-        System.out.println(port);
         try {
             port.open(connection);
             port.setParameters(9600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
@@ -118,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        connect();
+        connect();
 
         setContentView(R.layout.activity_main);
         mTv_qc_result = findViewById(R.id.tv_serial_result);
