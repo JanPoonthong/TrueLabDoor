@@ -86,9 +86,8 @@ public class MainActivity extends AppCompatActivity {
         // Get the first available driver which is the compatible one
         UsbSerialDriver driver = drivers.get(0);
 
-        UsbDevice device = driver.getDevice();
-        UsbDeviceConnection connection = manager.openDevice(device);
-        if (connection == null && usbPermission == UsbPermission.Unknown && !manager.hasPermission(driver.getDevice())) {
+        UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
+        if (connection == null) {
             usbPermission = UsbPermission.Requested;
             int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_MUTABLE : 0;
             PendingIntent usbPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(Constants.INTENT_ACTION_GRANT_USB), flags);
