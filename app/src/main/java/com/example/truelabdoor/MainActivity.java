@@ -30,12 +30,9 @@ import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
     private final BroadcastReceiver broadcastReceiver;
-    IntentFilter filter = new IntentFilter(Constants.ACTION_USB_PERMISSION);
-    UsbSerialPort port;
     TerminalConsumeDataForSystem terminal;
     private Boolean portConnected = false;
     private UsbPermission usbPermission = UsbPermission.Unknown;
-    private enum UsbPermission {Unknown, Requested, Granted, Denied}
     private TextView mTv_qc_result;
 
     public MainActivity() {
@@ -77,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void connect() {
         UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        
+
         UsbSerialProber usbCustomProber = CustomProber.getCustomProber();
         UsbSerialDriver driver = null;
         for (UsbDevice device : manager.getDeviceList().values()) {
@@ -164,5 +161,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
     }
+
+    private enum UsbPermission {Unknown, Requested, Granted, Denied}
 
 }
